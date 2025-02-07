@@ -288,11 +288,14 @@
 
 <body>
 
-    <button class="toggle-button" id="darkModeToggle">Toggle Dark Mode</button>
-    <h1>Plant Identifier AI</h1>
+    <h1>Plant Identifier</h1>
 
     <div class="container">
-        <button id="cameraButton">Take Photo</button>
+    <select id="cameraSelect">
+        <option value="user">Front Camera</option>
+        <option value="environment">Back Camera</option>
+    </select>
+    <button id="cameraButton">Take Photo</button>
         <video id="cameraStream" autoplay playsinline></video>
         <div class="file-input">
             <label>
@@ -479,16 +482,17 @@
 
     // Start the camera
     const startCamera = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: true
-            });
-            cameraStream.srcObject = stream;
-            cameraStream.style.display = 'block';
-        } catch (error) {
-            console.error("Error accessing camera:", error);
-            alert("Error accessing camera. Make sure you allow camera access.");
-        }
+    const selectedCamera = document.getElementById('cameraSelect').value; // Get user-selected camera
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: selectedCamera }
+        });
+        cameraStream.srcObject = stream;
+        cameraStream.style.display = 'block';
+    } catch (error) {
+        console.error("Error accessing camera:", error);
+        alert("Error accessing camera. Make sure you allow camera access.");
+    }
     };
 
     // Stop the camera
