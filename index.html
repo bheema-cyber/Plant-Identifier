@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Identifier</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f0f5f0, #d0e0d0);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            color: #333;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            text-align: center;
+            overflow-x: hidden;
+        }
+
+        .dark-mode body {
+            background: linear-gradient(135deg, #303030, #101010);
+            color: #eee;
+        }
+
+        h1 {
+            color: #28a745;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .dark-mode h1 {
+            color: #a7d1ab;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 700px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .container:hover {
+            transform: translateY(-3px);
+        }
+
+        .dark-mode .container {
+            background-color: rgba(51, 51, 51, 0.9);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .file-input {
+            margin-bottom: 30px;
+        }
+
+        .file-input label {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-input label:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .file-input input[type="file"] {
+            display: none;
+        }
+
+        img#preview {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .spinner {
+            margin: 30px auto;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #28a745;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .output {
+            margin-top: 30px;
+            text-align: left;
+            width: 100%;
+            opacity: 0;
+            animation: fadeIn 1s 0.3s ease-out forwards;
+        }
+
+        .output h3 {
+            color: #28a745;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .dark-mode .output h3 {
+            color: #a7d1ab;
+        }
+
+        .plant-details {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            text-align: left;
+            box-shadow: 0 3px 7px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-mode .plant-details {
+            background-color: #444;
+            border-color: #666;
+            color: #f4f4f9;
+        }
+
+        .plant-details p {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .plant-details strong {
+            font-weight: 600;
+        }
+
+        .wikipedia-results {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            text-align: left;
+            box-shadow: 0 3px 7px rgba(0, 0, 0, 0.1);
+        }
+
+        .wikipedia-results h4 {
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+
+        .wikipedia-results p {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .toggle-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #5a6268;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            z-index: 100;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 3px 7px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-button:hover {
+            background-color: #343a40;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .dark-mode .toggle-button {
+            background-color: #a7d1ab;
+            color: #333;
+        }
+
+        #downloadButton {
+            background-color: #5a6268;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-top: 20px;
+            box-shadow: 0 3px 7px rgba(0, 0, 0, 0.2);
+        }
+
+        #downloadButton:hover {
+            background-color: #343a40;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        #cameraButton {
+            background-color: #5a6268;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 7px rgba(0, 0, 0, 0.2);
+        }
+
+        #cameraButton:hover {
+            background-color: #343a40;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        #cameraStream {
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="toggle-button" id="darkModeToggle">Toggle Dark Mode</button>
+    <h1>Plant Identifier</h1>
+
+    <div class="container">
+        <button id="cameraButton">Take Photo</button>
+        <video id="cameraStream" autoplay playsinline></video>
+        <div class="file-input">
+            <label>
+                Upload Image
+                <input type="file" id="imageInput" accept="image/*">
+            </label>
+        </div>
+
+        <img id="preview" src="" alt="" style="display: none;">
+        <div class="spinner" id="loading" style="display: none;"></div>
+        <div class="output" id="output"></div>
+        <div class="wikipedia-results" id="wikipediaResults" style="display: none;">
+            <h4>Wikipedia Details:</h4>
+            <div id="wikiContent"></div>
+            <div id="usageInfo"></div>
+        </div>
+        <button id="downloadButton" style="display: none;">Download as PDF</button>
+    </div>
+
+    <script>
+        const API_URL = "https://api.plant.id/v2/identify";
+        const API_KEY = "PIRHofWlmrogNQ5977gjH8U9QftKdPlAijvM7IWFfB01ffHxRE";
+        const imageInput = document.getElementById("imageInput");
+        const preview = document.getElementById("preview");
+        const loading = document.getElementById("loading");
+        const output = document.getElementById("output");
+        const darkModeToggle = document.getElementById("darkModeToggle");
+        const downloadButton = document.getElementById("downloadButton");
+        const cameraButton = document.getElementById('cameraButton');
+        const cameraStream = document.getElementById('cameraStream');
+        const plantUses = {
+            "Mentha spicata": "Mint is commonly used as a flavoring agent in foods and beverages. It also has medicinal properties and is used to aid digestion.",
+            "Azadirachta indica": "Neem is known for its medicinal properties, particularly its antiseptic and insecticidal qualities. It is used in traditional medicine, cosmetics, and agriculture.",
+            "Ocimum tenuiflorum": "Tulsi, also known as Holy Basil, is revered in Hinduism and is used in religious ceremonies and traditional medicine. It is believed to have antioxidant and anti-inflammatory properties.",
+            "Ficus religiosa": "The Peepal tree is considered sacred in Hinduism and Buddhism and is often planted near temples. It has some medicinal uses as well.",
+            "Mangifera indica": "Mango is a popular fruit that is rich in vitamins and antioxidants. It is consumed worldwide.",
+            "Carica papaya": "Papaya is enjoyed as a fruit and is also used for its digestive enzymes. It has applications in skincare as well.",
+            "Tamarindus indica": "Tamarind is used as a souring agent in cooking and is also employed in traditional medicine."
+        };
+            // Function to fetch Wikipedia content
+        async function fetchWikipediaContent(plantName) {
+            const encodedPlantName = encodeURIComponent(plantName);
+            const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&origin=*&titles=${encodedPlantName}`;
+              try {
+                  const response = await fetch(apiUrl);
+                  const data = await response.json();
+                  const pages = data.query.pages;
+
+                  for (let pageId in pages) {
+                      if (pages.hasOwnProperty(pageId)) {
+                          const page = pages[pageId];
+                          if (page.extract) {
+                            const extract = page.extract;
+                            const wikiContentDiv = document.getElementById('wikiContent');
+                            wikiContentDiv.innerHTML = extract;
+                             document.getElementById('wikipediaResults').style.display = 'block';
+                             // Fetch Usage from plantUses dictionary
+                             const usage = plantUses[plantName] || "Usage information not available.";
+                             document.getElementById('usageInfo').innerHTML = `<p><strong>Uses:</strong> ${usage}</p>`;
+                              return; // Display only the first result
+                          }
+                      }
+                  }
+
+                  document.getElementById('wikiContent').innerHTML = "<p>No Wikipedia information found.</p>";
+                  document.getElementById('wikipediaResults').style.display = 'block';
+              } catch (error) {
+                  console.error("Error fetching Wikipedia content:", error);
+                  document.getElementById('wikiContent').innerHTML = "<p>Error fetching Wikipedia information.</p>";
+                  document.getElementById('wikipediaResults').style.display = 'block';
+              }
+        }
+        const processImageFile = (file) => {
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    preview.src = reader.result;
+                    preview.style.display = "block";
+                    identifyPlant(reader.result.split(',')[1]);
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        const identifyPlant = async (base64Image) => {
+            loading.style.display = "block";
+            output.innerHTML = "";
+            downloadButton.style.display = "none";
+                document.getElementById('wikipediaResults').style.display = 'none';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Api-Key": API_KEY
+                    },
+                    body: JSON.stringify({
+                        images: [base64Image],
+                        modifiers: ["similar_images"],
+                        plant_language: "en",
+                        include_related_images: true,
+                        plant_details: ["common_names", "url", "wiki_description", "taxonomy"]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                loading.style.display = "none";
+
+                if (data.suggestions && data.suggestions.length > 0) {
+                    let plantDetailsHtml = "";
+                    data.suggestions.slice(0, 3).forEach(suggestion => {
+                        const plantDetails = suggestion.plant_details || {};
+                        const scientificName = plantDetails?.scientific_name || suggestion.plant_name;
+                            const usage = plantUses[scientificName] || "Usage information not available.";
+                        plantDetailsHtml += `
+                            <div class="plant-details">
+                                <p>
+                                    <strong>Normal Name:</strong> ${suggestion.plant_name} <br>
+                                    <strong>Scientific Name:</strong> ${scientificName || "Unknown"} <br>
+                                    <strong>Probability:</strong> ${(suggestion.probability * 100).toFixed(2)}%
+                                </p>
+                                ${plantDetails.common_names ? `<p><strong>Common Names:</strong> ${plantDetails.common_names.join(', ')}</p>` : ''}
+                                ${plantDetails.wiki_description ? `<p><strong>Description:</strong> ${plantDetails.wiki_description.value}</p>` : ''}
+                                ${plantDetails.taxonomy ? `
+                                    <p><strong>Taxonomy:</strong>
+                                        <ul>
+                                            <li><strong>Class:</strong> ${plantDetails.taxonomy.class || 'N/A'}</li>
+                                            <li><strong>Family:</strong> ${plantDetails.taxonomy.family || 'N/A'}</li>
+                                            <li><strong>Genus:</strong> ${plantDetails.taxonomy.genus || 'N/A'}</li>
+                                        </ul>
+                                    </p>
+                                ` : ''}
+                                ${plantDetails.url ? `<p><strong>More Info:</strong> <a href="${plantDetails.url}" target="_blank">Learn More</a></p>` : ''}
+                                 <p><strong>Uses:</strong> ${usage}</p>
+                            </div>
+                        `;
+                    });
+                    output.innerHTML = `<h3>Top Suggestions:</h3>${plantDetailsHtml}`;
+                    downloadButton.style.display = "block";
+                    // Fetch Wikipedia content
+                const firstSuggestion = data.suggestions[0];
+                 if (firstSuggestion) {
+                     const plantName = firstSuggestion.plant_name;
+                      fetchWikipediaContent(plantName);
+                 }
+            } else {
+                output.innerHTML = "<p>No plant could be identified. Please try another image.</p>";
+                downloadButton.style.display = "none";
+                  document.getElementById('wikipediaResults').style.display = 'none';
+            }
+        } catch (error) {
+            loading.style.display = "none";
+            output.innerHTML = `<p>An error occurred: ${error.message}</p>`;
+            downloadButton.style.display = "none";
+              document.getElementById('wikipediaResults').style.display = 'none';
+        }
+    };
+
+    const toggleDarkMode = () => {
+        document.body.classList.toggle("dark-mode");
+    };
+
+    imageInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        processImageFile(file);
+    });
+     // Function to process image from camera
+    const processCameraImage = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = cameraStream.videoWidth;
+        canvas.height = cameraStream.videoHeight;
+        canvas.getContext('2d').drawImage(cameraStream, 0, 0);
+        const dataURL = canvas.toDataURL('image/jpeg');
+        preview.src = dataURL;
+        preview.style.display = "block";
+        identifyPlant(dataURL.split(',')[1]);
+        stopCamera();
+    };
+
+    // Start the camera
+    const startCamera = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: true
+            });
+            cameraStream.srcObject = stream;
+            cameraStream.style.display = 'block';
+        } catch (error) {
+            console.error("Error accessing camera:", error);
+            alert("Error accessing camera. Make sure you allow camera access.");
+        }
+    };
+
+    // Stop the camera
+    const stopCamera = () => {
+        if (cameraStream.srcObject) {
+            const stream = cameraStream.srcObject;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            cameraStream.srcObject = null;
+            cameraStream.style.display = 'none';
+        }
+    };
+
+    // Handle camera button click
+    cameraButton.addEventListener('click', async () => {
+        if (!cameraStream.srcObject) {
+            await startCamera();
+        } else {
+            processCameraImage();
+        }
+    });
+
+    darkModeToggle.addEventListener("click", toggleDarkMode);
+
+    downloadButton.addEventListener("click", () => {
+        // Function to generate PDF
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+
+            // New jsPDF instance
+            const pdf = new jsPDF();
+
+            // Add title
+            pdf.setFontSize(20);
+            pdf.text("Plant Identification Report", 20, 20);
+
+            let currentY = 30; // Starting Y position
+
+            // Add the image to the PDF
+            if (preview.src && preview.style.display !== "none") {
+                pdf.addImage(preview.src, 'JPEG', 20, currentY, 80, 60);
+                currentY += 70; // Update the Y position
+            }
+
+            // Split the output content into lines
+            const textLines = output.innerText.split('\n');
+
+            // Set font size and line height for text
+            pdf.setFontSize(12);
+            const lineHeight = 8;
+
+            // Add each line of text to the PDF
+            for (const line of textLines) {
+                // Check if adding the line exceeds the page height
+                if (currentY > pdf.internal.pageSize.getHeight() - 20) {
+                    pdf.addPage();
+                    currentY = 20; // Reset Y position on new page
+                }
+
+                // Split the line into smaller segments if it exceeds the maximum width
+                const maxWidth = 180;
+                const segments = pdf.splitTextToSize(line, maxWidth);
+
+                // Add each segment of the line to the PDF
+                for (const segment of segments) {
+                    pdf.text(segment, 20, currentY);
+                    currentY += lineHeight;
+                }
+            }
+               //Add Wikipedia Details to PDF
+            pdf.addPage();
+            pdf.setFontSize(14);
+            pdf.text("Wikipedia Details:", 20, 20);
+            currentY = 30;
+
+            const wikiContentDiv = document.getElementById('wikiContent');
+             if (wikiContentDiv) {
+                const wikiTextLines = wikiContentDiv.innerText.split('\n');
+                   for (const line of wikiTextLines) {
+                       if (currentY > pdf.internal.pageSize.getHeight() - 20) {
+                           pdf.addPage();
+                           currentY = 20;
+                       }
+
+                       const maxWidth = 180;
+                       const segments = pdf.splitTextToSize(line, maxWidth);
+
+                       for (const segment of segments) {
+                           pdf.text(segment, 20, currentY);
+                           currentY += lineHeight;
+                       }
+                   }
+                }
+             const usageInfoDiv = document.getElementById('usageInfo');
+            if (usageInfoDiv) {
+                const usageTextLines = usageInfoDiv.innerText.split('\n');
+                for (const line of usageTextLines) {
+                    if (currentY > pdf.internal.pageSize.getHeight() - 20) {
+                        pdf.addPage();
+                        currentY = 20;
+                    }
+
+                    const maxWidth = 180;
+                    const segments = pdf.splitTextToSize(line, maxWidth);
+
+                    for (const segment of segments) {
+                        pdf.text(segment, 20, currentY);
+                        currentY += lineHeight;
+                    }
+                }
+            }
+
+            // Save the PDF
+            pdf.save("plant_identification.pdf");
+        }
+
+        // Call the function to generate the PDF
+        generatePDF();
+    });
+         // Function to fetch Wikipedia content
+    async function fetchWikipediaContent(plantName) {
+        const encodedPlantName = encodeURIComponent(plantName);
+        const apiUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&origin=*&titles=${encodedPlantName}`;
+
+        try {
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            const pages = data.query.pages;
+
+            for (let pageId in pages) {
+                if (pages.hasOwnProperty(pageId)) {
+                    const page = pages[pageId];
+                    if (page.extract) {
+                        const extract = page.extract;
+                        const wikiContentDiv = document.getElementById('wikiContent');
+                        wikiContentDiv.innerHTML = extract;
+                         document.getElementById('wikipediaResults').style.display = 'block';
+                           // Fetch Usage from plantUses dictionary
+                         const usage = plantUses[plantName] || "Usage information not available.";
+                         document.getElementById('usageInfo').innerHTML = `<p><strong>Uses:</strong> ${usage}</p>`;
+                          return; // Display only the first result
+                    }
+                }
+            }
+
+            document.getElementById('wikiContent').innerHTML = "<p>No Wikipedia information found.</p>";
+            document.getElementById('wikipediaResults').style.display = 'block';
+        } catch (error) {
+            console.error("Error fetching Wikipedia content:", error);
+            document.getElementById('wikiContent').innerHTML = "<p>Error fetching Wikipedia information.</p>";
+            document.getElementById('wikipediaResults').style.display = 'block';
+        }
+    }
+</script>
+
+</body>
+
+</html>
